@@ -1,0 +1,3 @@
+export { connectDB } from './mongoConfig';
+
+
