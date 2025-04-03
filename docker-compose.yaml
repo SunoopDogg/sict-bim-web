@@ -1,11 +1,20 @@
-name: kkallong-next
+name: sict-bim
 
 services:
   web:
     build: .
-    container_name: kkallong-next-front
+    container_name: sict-bim-front
     tty: true
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
-      - .:/root/kkallong-next
+      - .:/root/sict-bim
+
+  mongo:
+    image: mongodb/mongodb-community-server:8.0.4-ubuntu2204
+    container_name: sict-bim-mongo
+    tty: true
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./data:/data/db
