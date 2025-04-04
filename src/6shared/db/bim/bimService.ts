@@ -1,4 +1,8 @@
-import { insertJsonToCollection } from '../mongo/mongoService';
+import {
+  deleteDocumentInCollection,
+  findDocumentsInCollection,
+  insertJsonToCollection,
+} from '../mongo/mongoService';
 
 /**
  * BIM 객체의 각 값에 대해 유사도를 계산하는 함수
@@ -38,6 +42,31 @@ export function getSimilarityEachValues(
 }
 
 /**
+ * Name과 Method가 동일한 문서가 존재하는지 확인합니다.
+ *
+ * @param collectionName 컬렉션 이름
+ * @param name 검색할 Name 값
+ * @param method 검색할 Method 값
+ * @returns 중복 문서가 존재하면 true, 그렇지 않으면 false
+ */
+export async function checkDuplicateBimSimilarity(
+  collectionName: string,
+  name: string,
+  method: string,
+): Promise<boolean> {
+  try {
+    // Name과 Method가 일치하는 문서 검색
+    const query = { Name: name, Method: method };
+    const documents = await findDocumentsInCollection('similarity', collectionName, query);
+
+    // 문서가 하나라도 존재하면 true 반환
+    return documents.length > 0;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * BIM 객체의 유사도 결과를 MongoDB에 저장합니다.
  *
  * @param objectName 객체 이름
@@ -48,7 +77,7 @@ export function getSimilarityEachValues(
 export async function saveBimSimilarityResult(
   objectName: string,
   similarityObject: Record<string, any>,
-  method: string = 'Jaccard Similarity',
+  method: string,
   fileName: string,
 ): Promise<void> {
   try {
@@ -61,6 +90,27 @@ export async function saveBimSimilarityResult(
 
     // 결과를 'similarity' 컬렉션에 삽입
     await insertJsonToCollection('similarity', fileName, [resultObject]);
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * BIM 객체의 유사도 결과를 삭제
+ *
+ * @param collectionName 컬렉션 이름
+ * @param name 삭제할 객체의 이름
+ * @param method 삭제할 유사도 계산 방식
+ */
+export async function deleteBimSimilarityResult(
+  collectionName: string,
+  name: string,
+  method: string,
+): Promise<void> {
+  try {
+    // 결과 객체 삭제
+    const query = { Name: name, Method: method };
+    await deleteDocumentInCollection('similarity', collectionName, query);
   } catch (error) {
     throw error;
   }

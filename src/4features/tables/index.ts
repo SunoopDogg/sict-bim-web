@@ -1,0 +1,1 @@
+export { BimTable } from './BimTable';

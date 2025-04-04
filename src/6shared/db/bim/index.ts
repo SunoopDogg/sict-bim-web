@@ -1,1 +1,6 @@
-export { getSimilarityEachValues, saveBimSimilarityResult } from './bimService';
+export {
+  checkDuplicateBimSimilarity,
+  deleteBimSimilarityResult,
+  getSimilarityEachValues,
+  saveBimSimilarityResult,
+} from './bimService';
