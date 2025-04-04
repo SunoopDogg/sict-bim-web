@@ -3,12 +3,17 @@
 import { Button, Upload, message } from 'antd';
 import type { RcFile, UploadProps } from 'antd/es/upload';
 
+import { useState } from 'react';
+
 import { CenterLayout } from '@/src/3widgets/layouts';
+import { BimTable } from '@/src/4features/tables';
 
 import '@ant-design/v5-patch-for-react-19';
 
 export function Main() {
   const [messageApi, contextHolder] = message.useMessage();
+  const [refreshTable, setRefreshTable] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const beforeUpload = (file: RcFile) => {
     const isXlsx =
@@ -21,50 +26,37 @@ export function Main() {
   };
 
   const handleChange: UploadProps['onChange'] = async (info) => {
+    if (info.file.status === 'uploading') {
+      setLoading(true);
+      return;
+    }
+
     if (info.file.status === 'done') {
       const formData = new FormData();
       formData.append('file', info.file.originFileObj as RcFile);
-      const response = await fetch('/api/bim/upload', {
-        method: 'POST',
-        body: formData,
-      });
 
-      if (response.ok) {
-        messageApi.success('파일이 성공적으로 업로드되었습니다.');
-      } else {
-        messageApi.error('파일 업로드에 실패했습니다.');
+      try {
+        const response = await fetch('/api/bim/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (response.ok) {
+          messageApi.success('파일이 성공적으로 업로드되었습니다.');
+          // 테이블 데이터 새로고침 트리거
+          setRefreshTable((prev) => prev + 1);
+        } else {
+          messageApi.error('파일 업로드에 실패했습니다.');
+        }
+      } catch (error) {
+        messageApi.error('파일 업로드 중 오류가 발생했습니다.');
+      } finally {
+        setLoading(false);
       }
     } else if (info.file.status === 'error') {
       messageApi.error(`${info.file.name} 파일 업로드에 실패했습니다.`);
+      setLoading(false);
     }
-  };
-
-  const handleClick = async () => {
-    const searchParams = new URLSearchParams({
-      dbName: 'bim',
-      collectionName: '속성테이블(프로세스)',
-    });
-
-    const response = await fetch(`/api/bim/read?${searchParams.toString()}`);
-    if (response.ok) {
-      const data = await response.json();
-      console.log('Fetched data:', data);
-    }
-  };
-
-  const handleAnalyze = async () => {
-    const response = await fetch('/api/similarity/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        dbName: 'bim',
-        collectionName: '속성테이블(프로세스)',
-        delimiter: ['_'],
-        method: 'jaccard',
-      }),
-    });
   };
 
   return (
@@ -79,16 +71,10 @@ export function Main() {
           maxCount={1}
           showUploadList={false}
         >
-          <Button>엑셀 파일(.xlsx) 업로드</Button>
+          <Button loading={loading}>엑셀 파일(.xlsx) 업로드</Button>
         </Upload>
 
-        <Button type="primary" onClick={handleClick}>
-          데이터 불러오기
-        </Button>
-
-        <Button type="primary" onClick={handleAnalyze}>
-          분석하기
-        </Button>
+        <BimTable refresh={refreshTable} />
       </div>
     </CenterLayout>
   );
