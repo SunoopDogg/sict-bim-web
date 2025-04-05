@@ -6,14 +6,15 @@ export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
     const { searchParams } = url;
-    const collectionName = searchParams.get('collectionName');
+    const bim = searchParams.get('bim');
+    const on = searchParams.get('on');
 
-    if (!collectionName) {
-      return NextResponse.json({ error: 'collectionName을 입력해주세요.' }, { status: 400 });
+    if (!bim || !on) {
+      return NextResponse.json({ error: 'bim과 on 파라미터는 필수입니다.' }, { status: 400 });
     }
 
     // 유사도 결과 조회
-    const results = await getBimSimilarityTable(collectionName);
+    const results = await getBimSimilarityTable(bim, on);
 
     return NextResponse.json(results);
   } catch (error) {
