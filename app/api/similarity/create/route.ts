@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     const documents = await getAllDocumentsFromCollection(dbName, collectionName);
 
-    for (const bimObject of documents.slice(0, 1)) {
+    for (const bimObject of documents) {
       // BIM 객체의 이름 가져오기
       const objectName = bimObject['Name'];
 
@@ -55,22 +55,41 @@ export async function POST(req: NextRequest) {
       const similarityFunction =
         method === SimilarityMethod.COSINE ? getCosineSimilarity : getJaccardSimilaritySimilarity;
 
-      const similarityResults: Record<string, any> = getSimilarityEachValues(
-        extendedTokens,
-        newBimObject,
-        similarityFunction,
-      );
+      for (const token of extendedTokens) {
+        const similarityResults: Record<string, any> = getSimilarityEachValues(
+          token,
+          newBimObject,
+          similarityFunction,
+        );
 
-      const isDuplicate = await checkDuplicateBimSimilarity(collectionName, objectName, method);
+        const isDuplicate = await checkDuplicateBimSimilarity(
+          collectionName,
+          objectName,
+          method,
+          token,
+        );
 
-      // 중복된 문서가 없을 경우에만 저장
-      if (!isDuplicate) {
-        await saveBimSimilarityResult(objectName, similarityResults, method, collectionName);
-      }
-      // 중복된 문서가 있을 경우, 기존 문서에 유사도 결과를 추가
-      else {
-        await deleteBimSimilarityResult(collectionName, objectName, method);
-        await saveBimSimilarityResult(objectName, similarityResults, method, collectionName);
+        // 중복된 문서가 없을 경우에만 저장
+        if (!isDuplicate) {
+          await saveBimSimilarityResult(
+            objectName,
+            method,
+            token,
+            similarityResults,
+            collectionName,
+          );
+        }
+        // 중복된 문서가 있을 경우, 기존 문서에 유사도 결과를 추가
+        else {
+          await deleteBimSimilarityResult(collectionName, objectName, method, token);
+          await saveBimSimilarityResult(
+            objectName,
+            method,
+            token,
+            similarityResults,
+            collectionName,
+          );
+        }
       }
     }
 
