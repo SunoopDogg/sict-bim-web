@@ -67,6 +67,60 @@ export async function checkDuplicateBimSimilarity(
 }
 
 /**
+ * 컬렉션에서 유사도 결과를 조회합니다.
+ *
+ * @param collectionName 컬렉션 이름
+ * @returns 유사도 결과 리스트
+ */
+export async function getBimSimilarityTable(collectionName: string) {
+  try {
+    // 컬렉션의 모든 문서 조회
+    const documents = await findDocumentsInCollection('similarity', collectionName, {});
+
+    // SimilarityData 인터페이스에 맞게 데이터 변환
+    const results: Array<{
+      id: string;
+      propertySet: string;
+      propertyName: string;
+      propertyValue: string;
+      target: string;
+      similarity: number;
+    }> = [];
+
+    for (const doc of documents) {
+      const { _id, Name, Method, ...properties } = doc;
+
+      for (const [propertySet, first] of Object.entries(properties)) {
+        if (typeof first === 'object' && first !== null) {
+          for (const [propertyName, second] of Object.entries(first)) {
+            if (typeof second === 'object' && second !== null) {
+              for (const [propertyValue, third] of Object.entries(second)) {
+                if (typeof third === 'object' && third !== null) {
+                  for (const [target, forth] of Object.entries(third)) {
+                    results.push({
+                      id: String(propertySet + propertyName + propertyValue + target),
+                      propertySet: String(propertySet),
+                      propertyName: String(propertyName),
+                      propertyValue: String(propertyValue),
+                      target: String(target),
+                      similarity: Number(forth),
+                    });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return results;
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
  * BIM 객체의 유사도 결과를 MongoDB에 저장합니다.
  *
  * @param objectName 객체 이름
