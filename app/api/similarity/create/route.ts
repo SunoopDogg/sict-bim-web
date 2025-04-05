@@ -43,7 +43,6 @@ export async function POST(req: NextRequest) {
       for (const del of delimiter) {
         extendedTokens.push(...combineTwoTokens(tokens, del));
       }
-      console.log('extendedTokens', extendedTokens);
 
       // 특정 키를 제외한 새로운 BIM 객체 생성
       const newBimObject = Object.fromEntries(
@@ -75,8 +74,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      message: 'Similarity results saved successfully.',
+    });
   } catch (error) {
-    return NextResponse.json({ success: false, error: (error as Error).message }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'An error occurred while calculating similarity.',
+      },
+      { status: 500 },
+    );
   }
 }
