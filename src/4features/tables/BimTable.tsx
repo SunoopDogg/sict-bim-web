@@ -28,7 +28,6 @@ export function BimTable({ refresh = 0 }: BimTableProps) {
         const data = await response.json();
         setCollections(data);
       } catch (error) {
-        console.error('테이블 데이터 불러오기 실패:', error);
       } finally {
         setLoading(false);
       }
