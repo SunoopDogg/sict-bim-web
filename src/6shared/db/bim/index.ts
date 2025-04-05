@@ -3,4 +3,5 @@ export {
   deleteBimSimilarityResult,
   getSimilarityEachValues,
   saveBimSimilarityResult,
+  getBimSimilarityTable,
 } from './bimService';
