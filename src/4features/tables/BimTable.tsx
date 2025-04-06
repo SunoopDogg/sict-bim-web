@@ -6,8 +6,6 @@ import { useEffect, useState } from 'react';
 
 interface Collection {
   name: string;
-  type: string;
-  options: Record<string, any>;
 }
 
 interface BimTableProps {
@@ -15,9 +13,10 @@ interface BimTableProps {
 }
 
 export function BimTable({ refresh = 0 }: BimTableProps) {
+  const router = useRouter();
+
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     async function fetchCollections() {
@@ -50,16 +49,20 @@ export function BimTable({ refresh = 0 }: BimTableProps) {
       columns={columns}
       loading={loading}
       rowKey="name"
-      pagination={false}
       bordered
       onRow={(record) => ({
         onClick: () => {
-          router.push(`/bim/${record.name}`);
+          router.push(`/${record.name}`);
         },
         style: {
           cursor: 'pointer',
         },
       })}
+      pagination={{
+        pageSize: 10,
+        showSizeChanger: false,
+        position: ['bottomCenter'],
+      }}
     />
   );
 }
