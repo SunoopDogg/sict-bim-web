@@ -11,18 +11,20 @@ import { SimilarityTable } from '@/src/4features/tables';
 
 import '@ant-design/v5-patch-for-react-19';
 
-interface BimProps {
-  id: string;
+interface SimilarityProps {
+  bim: string;
+  on: string;
 }
 
-export function Bim({ id }: BimProps) {
+export function Similarity({ bim, on }: SimilarityProps) {
   const router = useRouter();
+
   const [messageApi, contextHolder] = message.useMessage();
 
   const [delimiter, setDelimiter] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
-  // 분석 완료 후 테이블을 리렌더링하기 위한 상태 추가
+
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
   const handleAnalyze = async () => {
@@ -35,7 +37,7 @@ export function Bim({ id }: BimProps) {
         },
         body: JSON.stringify({
           dbName: 'bim',
-          collectionName: decodeURIComponent(id),
+          collectionName: decodeURIComponent(bim),
           delimiter: delimiter,
           method: 'jaccard',
         }),
@@ -43,7 +45,6 @@ export function Bim({ id }: BimProps) {
 
       if (response.ok) {
         messageApi.success('분석이 완료되었습니다.');
-        // 분석 완료 후 refreshKey 증가하여 테이블 리렌더링
         setRefreshKey((prev) => prev + 1);
       } else {
         const errorData = await response.json();
@@ -72,7 +73,9 @@ export function Bim({ id }: BimProps) {
       {contextHolder}
 
       <div className="flex flex-col items-center justify-center gap-4">
-        <Space>
+        <h1 className="mb-4 text-2xl font-bold">유사도 분석</h1>
+
+        {/* <Space>
           <Input
             placeholder="구분자를 입력하세요"
             value={inputValue}
@@ -83,9 +86,9 @@ export function Bim({ id }: BimProps) {
           <Button type="primary" onClick={handleAddDelimiter}>
             추가
           </Button>
-        </Space>
+        </Space> */}
 
-        <Space>
+        {/* <Space>
           {delimiter.map((item) => (
             <Tag key={item} closable onClose={() => handleRemoveDelimiter(item)}>
               {item}
@@ -93,18 +96,13 @@ export function Bim({ id }: BimProps) {
           ))}
 
           <Button type="primary" onClick={handleAnalyze} loading={loading}>
-            {loading ? '분석 중...' : '분석하기'}
+            {loading ? '분석 중...' : '데이터 불러오기'}
           </Button>
-        </Space>
+        </Space> */}
 
-        <SimilarityTable refresh={refreshKey} collectionName={decodeURIComponent(id)} />
+        <SimilarityTable bim={decodeURIComponent(bim)} on={on} refresh={refreshKey} />
 
-        <Button
-          onClick={() => {
-            router.push('/');
-          }}
-          className="mt-4"
-        >
+        <Button onClick={() => router.push(`/${bim}`)} className="mt-4">
           돌아가기
         </Button>
       </div>

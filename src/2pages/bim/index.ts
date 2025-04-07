@@ -1,1 +1,0 @@
-export { Bim } from './Bim';

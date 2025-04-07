@@ -7,13 +7,13 @@ import {
 /**
  * BIM 객체의 각 값에 대해 유사도를 계산하는 함수
  *
- * @param tokens 토큰 리스트
+ * @param token 토큰
  * @param bimObject BIM 객체
  * @param func 유사도 계산 함수
  * @returns 유사도 결과
  */
 export function getSimilarityEachValues(
-  tokens: string[],
+  token: string,
   bimObject: Record<string, any>,
   func: (token: string, value: any) => number,
 ): Record<string, any> {
@@ -22,18 +22,16 @@ export function getSimilarityEachValues(
   for (const [k, v] of Object.entries(bimObject)) {
     if (typeof v === 'object' && v !== null) {
       // 값이 객체인 경우 재귀 호출
-      result[k] = getSimilarityEachValues(tokens, v, func);
+      result[k] = getSimilarityEachValues(token, v, func);
     } else {
       if (v === '') {
         continue;
       } else {
         const similarity: Record<string, number> = {};
 
-        for (const token of tokens) {
-          similarity[token] = func(token, v);
-        }
+        similarity[token] = func(token, v);
 
-        result[k] = { [String(v)]: similarity };
+        result[k] = { [String(v)]: func(token, v) };
       }
     }
   }
@@ -53,10 +51,11 @@ export async function checkDuplicateBimSimilarity(
   collectionName: string,
   name: string,
   method: string,
+  token: string,
 ): Promise<boolean> {
   try {
     // Name과 Method가 일치하는 문서 검색
-    const query = { Name: name, Method: method };
+    const query = { Name: name, Method: method, Token: token };
     const documents = await findDocumentsInCollection('similarity', collectionName, query);
 
     // 문서가 하나라도 존재하면 true 반환
@@ -69,13 +68,16 @@ export async function checkDuplicateBimSimilarity(
 /**
  * 컬렉션에서 유사도 결과를 조회합니다.
  *
- * @param collectionName 컬렉션 이름
+ * @param bimName 컬렉션 이름
+ * @param objectName BIM 객체의 이름
  * @returns 유사도 결과 리스트
  */
-export async function getBimSimilarityTable(collectionName: string) {
+export async function getBimSimilarityTable(bimName: string, objectName: string): Promise<any[]> {
   try {
     // 컬렉션의 모든 문서 조회
-    const documents = await findDocumentsInCollection('similarity', collectionName, {});
+    const documents = await findDocumentsInCollection('similarity', bimName, {
+      Name: objectName,
+    });
 
     // SimilarityData 인터페이스에 맞게 데이터 변환
     const results: Array<{
@@ -84,29 +86,31 @@ export async function getBimSimilarityTable(collectionName: string) {
       propertyName: string;
       propertyValue: string;
       target: string;
+      method: string;
       similarity: number;
     }> = [];
 
     for (const doc of documents) {
-      const { _id, Name, Method, ...properties } = doc;
+      const { _id, Name, Method, Token, ...properties } = doc;
 
       for (const [propertySet, first] of Object.entries(properties)) {
         if (typeof first === 'object' && first !== null) {
           for (const [propertyName, second] of Object.entries(first)) {
             if (typeof second === 'object' && second !== null) {
               for (const [propertyValue, third] of Object.entries(second)) {
-                if (typeof third === 'object' && third !== null) {
-                  for (const [target, forth] of Object.entries(third)) {
-                    results.push({
-                      id: String(propertySet + propertyName + propertyValue + target),
-                      propertySet: String(propertySet),
-                      propertyName: String(propertyName),
-                      propertyValue: String(propertyValue),
-                      target: String(target),
-                      similarity: Number(forth),
-                    });
-                  }
-                }
+                // if (third === null || third === undefined) {
+                //   continue;
+                // }
+
+                results.push({
+                  id: String(propertySet + propertyName + propertyValue + Token),
+                  propertySet: String(propertySet),
+                  propertyName: String(propertyName),
+                  propertyValue: String(propertyValue),
+                  target: String(Token),
+                  method: String(Method),
+                  similarity: Number(third),
+                });
               }
             }
           }
@@ -123,15 +127,17 @@ export async function getBimSimilarityTable(collectionName: string) {
 /**
  * BIM 객체의 유사도 결과를 MongoDB에 저장합니다.
  *
- * @param objectName 객체 이름
+ * @param objectName BIM 객체의 이름
+ * @param method 유사도 계산 방식
+ * @param token 유사도 계산에 사용된 토큰
  * @param similarityObject 유사도 결과 객체
- * @param method 유사도 계산 방식 ('Jaccard Similarity' 또는 다른 방법)
- * @param fileName 컬렉션 이름으로 사용될 파일 이름
+ * @param fileName 저장할 파일 이름
  */
 export async function saveBimSimilarityResult(
   objectName: string,
-  similarityObject: Record<string, any>,
   method: string,
+  token: string,
+  similarityObject: Record<string, any>,
   fileName: string,
 ): Promise<void> {
   try {
@@ -139,6 +145,7 @@ export async function saveBimSimilarityResult(
     const resultObject: Record<string, any> = {
       Name: objectName,
       Method: method,
+      Token: token,
       ...similarityObject,
     };
 
@@ -153,17 +160,18 @@ export async function saveBimSimilarityResult(
  * BIM 객체의 유사도 결과를 삭제
  *
  * @param collectionName 컬렉션 이름
- * @param name 삭제할 객체의 이름
+ * @param objectName 삭제할 객체의 이름
  * @param method 삭제할 유사도 계산 방식
  */
 export async function deleteBimSimilarityResult(
   collectionName: string,
-  name: string,
+  objectName: string,
   method: string,
+  token: string,
 ): Promise<void> {
   try {
     // 결과 객체 삭제
-    const query = { Name: name, Method: method };
+    const query = { Name: objectName, Method: method, Token: token };
     await deleteDocumentInCollection('similarity', collectionName, query);
   } catch (error) {
     throw error;

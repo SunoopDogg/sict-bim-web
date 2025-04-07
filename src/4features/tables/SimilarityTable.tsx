@@ -9,22 +9,24 @@ interface SimilarityData {
   propertyName: string;
   propertyValue: string;
   target: string;
+  method: string;
   similarity: number;
 }
 
 interface SimilarityTableProps {
+  bim: string;
+  on: string;
   refresh?: number;
-  collectionName: string;
 }
 
-export function SimilarityTable({ refresh = 0, collectionName }: SimilarityTableProps) {
+export function SimilarityTable({ bim, on, refresh = 0 }: SimilarityTableProps) {
   const [loading, setLoading] = useState<boolean>(false);
   const [data, setData] = useState<SimilarityData[]>([]);
 
   const fetchSimilarityData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/similarity/read?collectionName=${collectionName}`);
+      const response = await fetch(`/api/similarity/read?bim=${bim}&on=${on}`);
 
       if (response.ok) {
         const data = await response.json();
@@ -38,7 +40,7 @@ export function SimilarityTable({ refresh = 0, collectionName }: SimilarityTable
 
   useEffect(() => {
     fetchSimilarityData();
-  }, [collectionName, refresh]); // refresh가 변경될 때마다 데이터를 다시 불러옴
+  }, [bim, on, refresh]);
 
   const columns: ColumnsType<SimilarityData> = [
     {
@@ -60,6 +62,20 @@ export function SimilarityTable({ refresh = 0, collectionName }: SimilarityTable
       title: '대상',
       dataIndex: 'target',
       key: 'target',
+    },
+
+    {
+      title: '계산법',
+      dataIndex: 'method',
+      key: 'method',
+      render: (text: string) => {
+        const methodMap: Record<string, string> = {
+          jaccard: '자카드 유사도',
+          cosine: '코사인 유사도',
+          levenshtein: '레벤슈타인 거리',
+        };
+        return methodMap[text] || text;
+      },
     },
     {
       title: '유사도',
