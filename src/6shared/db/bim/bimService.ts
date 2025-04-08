@@ -98,12 +98,8 @@ export async function getBimSimilarityTable(bimName: string, objectName: string)
           for (const [propertyName, second] of Object.entries(first)) {
             if (typeof second === 'object' && second !== null) {
               for (const [propertyValue, third] of Object.entries(second)) {
-                // if (third === null || third === undefined) {
-                //   continue;
-                // }
-
                 results.push({
-                  id: String(propertySet + propertyName + propertyValue + Token),
+                  id: String(_id + propertySet + propertyName + propertyValue),
                   propertySet: String(propertySet),
                   propertyName: String(propertyName),
                   propertyValue: String(propertyValue),
