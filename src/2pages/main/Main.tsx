@@ -64,7 +64,7 @@ export function Main() {
       {contextHolder}
 
       <div className="flex flex-col items-center justify-center gap-4">
-        <h1 className="mb-4 text-2xl font-bold">BIM 데이터 리스트</h1>
+        <h1 className="text-2xl font-bold">BIM 데이터 리스트</h1>
 
         <Upload
           accept=".xlsx"
