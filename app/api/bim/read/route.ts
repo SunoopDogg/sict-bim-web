@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getAllDocumentsFromCollection } from '@/src/6shared/db/mongo';
+import { getSearchedPaginatedDocuments } from '@/src/6shared/db/mongo';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,11 +8,28 @@ export async function GET(request: NextRequest) {
     const { searchParams } = url;
     const dbName = searchParams.get('dbName') || 'bim';
     const collectionName = searchParams.get('collectionName') || 'attribute-table';
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
+    const search = searchParams.get('search') || '';
+    const searchField = searchParams.get('searchField') || 'Name';
 
-    const documents = await getAllDocumentsFromCollection(dbName, collectionName);
+    const { items: documents, total } = await getSearchedPaginatedDocuments(
+      dbName,
+      collectionName,
+      page,
+      pageSize,
+      search,
+      searchField,
+    );
 
-    return NextResponse.json(documents);
+    return NextResponse.json({
+      items: documents,
+      total,
+      page,
+      pageSize,
+    });
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to read the file.' }, { status: 500 });
+    console.error('API Error:', error);
+    return NextResponse.json({ error: 'Failed to read the documents.' }, { status: 500 });
   }
 }
