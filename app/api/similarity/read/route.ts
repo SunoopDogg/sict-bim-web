@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getBimSimilarityTable } from '@/src/6shared/db/bim/bimService';
+import { getBimSimilarityTable } from '@/src/6shared/db/bim';
 
 export async function GET(req: NextRequest) {
   try {

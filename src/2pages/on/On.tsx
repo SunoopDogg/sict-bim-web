@@ -19,7 +19,10 @@ export function ObjectName({ bim }: ObjectNameProps) {
   return (
     <CenterLayout>
       <div className="flex flex-col items-center justify-center gap-4">
-        <h1 className="mb-4 text-2xl font-bold">객체명 리스트</h1>
+        <h1 className="text-2xl font-bold">객체 리스트</h1>
+        <p className="text-lg text-gray-500">
+          BIM: <strong>{decodeURIComponent(bim)}</strong>
+        </p>
 
         <ObjectNameTable bim={decodeURIComponent(bim)} />
 

@@ -7,35 +7,24 @@ import {
   getSimilarityEachValues,
   saveBimSimilarityResult,
 } from '@/src/6shared/db/bim';
-import { getAllDocumentsFromCollection } from '@/src/6shared/db/mongo';
+import { findDocumentsInCollection } from '@/src/6shared/db/mongo';
 import { combineTwoTokens, getToken, removeExceptParentheses } from '@/src/6shared/utils';
 import {
   getCosineSimilarity,
   getJaccardSimilaritySimilarity,
+  getNormalizedLevenshteinSimilarity,
 } from '@/src/6shared/utils/similarity';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { dbName, collectionName, delimiter, method } = body;
+    const { collectionName, objectName, delimiter } = body;
 
-    // 유효한 method 값인지 검증
-    if (!Object.values(SimilarityMethod).includes(method as SimilarityMethod)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Invalid similarity method. Supported methods: ${Object.values(SimilarityMethod).join(', ')}`,
-        },
-        { status: 400 },
-      );
-    }
-
-    const documents = await getAllDocumentsFromCollection(dbName, collectionName);
+    const documents = await findDocumentsInCollection('bim', collectionName, {
+      Name: objectName,
+    });
 
     for (const bimObject of documents) {
-      // BIM 객체의 이름 가져오기
-      const objectName = bimObject['Name'];
-
       // 객체 이름에서 토큰 추출
       const tokens = getToken(removeExceptParentheses(objectName));
       // 토큰 조합하여 확장
@@ -51,44 +40,49 @@ export async function POST(req: NextRequest) {
         ),
       );
 
-      // method에 따라 적절한 유사도 함수 선택
-      const similarityFunction =
-        method === SimilarityMethod.COSINE ? getCosineSimilarity : getJaccardSimilaritySimilarity;
-
       for (const token of extendedTokens) {
-        const similarityResults: Record<string, any> = getSimilarityEachValues(
-          token,
-          newBimObject,
-          similarityFunction,
-        );
+        for (const method of Object.values(SimilarityMethod)) {
+          const similarityFunction =
+            method === SimilarityMethod.JACCARD
+              ? getJaccardSimilaritySimilarity
+              : method === SimilarityMethod.COSINE
+                ? getCosineSimilarity
+                : getNormalizedLevenshteinSimilarity;
 
-        const isDuplicate = await checkDuplicateBimSimilarity(
-          collectionName,
-          objectName,
-          method,
-          token,
-        );
+          const similarityResults: Record<string, any> = getSimilarityEachValues(
+            token,
+            newBimObject,
+            similarityFunction,
+          );
 
-        // 중복된 문서가 없을 경우에만 저장
-        if (!isDuplicate) {
-          await saveBimSimilarityResult(
+          const isDuplicate = await checkDuplicateBimSimilarity(
+            collectionName,
             objectName,
             method,
             token,
-            similarityResults,
-            collectionName,
           );
-        }
-        // 중복된 문서가 있을 경우, 기존 문서에 유사도 결과를 추가
-        else {
-          await deleteBimSimilarityResult(collectionName, objectName, method, token);
-          await saveBimSimilarityResult(
-            objectName,
-            method,
-            token,
-            similarityResults,
-            collectionName,
-          );
+
+          // 중복된 문서가 없을 경우에만 저장
+          if (!isDuplicate) {
+            await saveBimSimilarityResult(
+              objectName,
+              method,
+              token,
+              similarityResults,
+              collectionName,
+            );
+          }
+          // 중복된 문서가 있을 경우, 기존 문서에 유사도 결과를 추가
+          else {
+            await deleteBimSimilarityResult(collectionName, objectName, method, token);
+            await saveBimSimilarityResult(
+              objectName,
+              method,
+              token,
+              similarityResults,
+              collectionName,
+            );
+          }
         }
       }
     }

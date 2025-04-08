@@ -1,4 +1,7 @@
 export function getCosineSimilarity(token: string, value: string): number {
+  // null이나 undefined 값 처리
+  if (!token || !value) return 0;
+
   // 문자열을 벡터로 변환
   const tokenChars = token.toLowerCase().split('');
   const valueChars = String(value).toLowerCase().split('');
@@ -6,13 +9,17 @@ export function getCosineSimilarity(token: string, value: string): number {
   // 모든 고유 문자 추출
   const uniqueChars = [...new Set([...tokenChars, ...valueChars])];
 
-  // 각 문자열에 대한 벡터 생성
-  const tokenVector: number[] = [];
-  const valueVector: number[] = [];
+  // 벡터 계산 최적화
+  const tokenFreq: Record<string, number> = {};
+  const valueFreq: Record<string, number> = {};
 
-  for (const char of uniqueChars) {
-    tokenVector.push(tokenChars.filter((c) => c === char).length);
-    valueVector.push(valueChars.filter((c) => c === char).length);
+  // 빈도수 계산
+  for (const char of tokenChars) {
+    tokenFreq[char] = (tokenFreq[char] || 0) + 1;
+  }
+
+  for (const char of valueChars) {
+    valueFreq[char] = (valueFreq[char] || 0) + 1;
   }
 
   // 코사인 유사도 계산
@@ -20,14 +27,20 @@ export function getCosineSimilarity(token: string, value: string): number {
   let tokenMagnitude = 0;
   let valueMagnitude = 0;
 
-  for (let i = 0; i < uniqueChars.length; i++) {
-    dotProduct += tokenVector[i] * valueVector[i];
-    tokenMagnitude += tokenVector[i] * tokenVector[i];
-    valueMagnitude += valueVector[i] * valueVector[i];
+  for (const char of uniqueChars) {
+    const tokenCount = tokenFreq[char] || 0;
+    const valueCount = valueFreq[char] || 0;
+
+    dotProduct += tokenCount * valueCount;
+    tokenMagnitude += tokenCount * tokenCount;
+    valueMagnitude += valueCount * valueCount;
   }
 
   tokenMagnitude = Math.sqrt(tokenMagnitude);
   valueMagnitude = Math.sqrt(valueMagnitude);
 
-  return dotProduct / (tokenMagnitude * valueMagnitude) || 0;
+  // 둘 중 하나의 magnitude가 0이면 유사도는 0
+  if (tokenMagnitude === 0 || valueMagnitude === 0) return 0;
+
+  return dotProduct / (tokenMagnitude * valueMagnitude);
 }
